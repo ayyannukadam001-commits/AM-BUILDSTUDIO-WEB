@@ -1,8 +1,6 @@
 name: Build AM BUILDSTUDIO project APK
 
 on:
-  push:
-    branches: [cloudflare-migration-prep, am-buildstudio-upgrade-audit]
   pull_request:
     branches: [main]
   workflow_dispatch:
