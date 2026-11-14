@@ -88,6 +88,30 @@ async function googleLogin(request, env) {
   const session = await createSession(env,user.id);
   return json({user},200,{"set-cookie":cookieHeader(session.token,session.maxAge)});
 }
+async function githubDispatch(env, jobId, specJson) {
+  if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) throw new Error("GitHub Actions build integration is not configured.");
+  const ref = env.GITHUB_BUILD_REF || "am-buildstudio-upgrade-audit";
+  const response = await fetch("https://api.github.com/repos/" + env.GITHUB_REPOSITORY + "/actions/workflows/android-apk.yml/dispatches", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + env.GITHUB_TOKEN, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
+    body: JSON.stringify({ ref, inputs: { build_job_id: jobId, project_spec_json: specJson } })
+  });
+  if (!response.ok) throw new Error("GitHub Actions dispatch failed (" + response.status + "). Check Worker token permissions and repository Actions settings.");
+}
+async function buildCallback(request, env) {
+  if (!env.BUILD_CALLBACK_SECRET || request.headers.get("X-Build-Callback-Secret") !== env.BUILD_CALLBACK_SECRET) return json({ error: "Unauthorized callback." }, 401);
+  const body = await request.json();
+  const jobId = String(body.job_id || "");
+  const status = String(body.status || "");
+  if (!jobId || !["queued", "running", "succeeded", "failed"].includes(status)) return json({ error: "Valid job_id and status are required." }, 400);
+  const runId = body.workflow_run_id ? String(body.workflow_run_id) : null;
+  const runUrl = body.workflow_url ? String(body.workflow_url) : null;
+  const artifactName = body.artifact_name ? String(body.artifact_name).slice(0, 160) : null;
+  const message = body.message ? String(body.message).slice(0, 1200) : null;
+  await env.DB.prepare("UPDATE build_jobs SET status=?,workflow_run_id=COALESCE(?,workflow_run_id),workflow_url=COALESCE(?,workflow_url),artifact_name=COALESCE(?,artifact_name),logs=CASE WHEN ? IS NULL THEN logs ELSE COALESCE(logs,'') || char(10) || ? END,updated_at=CURRENT_TIMESTAMP WHERE id=?")
+    .bind(status, runId, runUrl, artifactName, message, message, jobId).run();
+  return json({ ok: true });
+}
 async function handle(request, env) {
   const url = new URL(request.url), path = url.pathname, method = request.method;
   if (path === "/api/health" && method === "GET") {
@@ -95,6 +119,7 @@ async function handle(request, env) {
     try { await env.DB.prepare("SELECT 1").first(); db = true; } catch {}
     return json({ ok:db, service:"am-buildstudio-api", database:db, ai:!!env.AI, authConfigured:!!(env.SESSION_SECRET && env.GOOGLE_CLIENT_ID && env.RESEND_API_KEY) }, db?200:503);
   }
+  if (path === "/api/builds/callback" && method === "POST") return buildCallback(request,env);
   if (path === "/api/auth/email/request" && method === "POST") return sendOtp(request,env);
   if (path === "/api/auth/email/verify" && method === "POST") return verifyOtp(request,env);
   if (path === "/api/auth/google" && method === "POST") return googleLogin(request,env);
@@ -153,6 +178,38 @@ async function handle(request, env) {
     const saved = JSON.stringify(plan);
     await env.DB.prepare("UPDATE projects SET status='generated',generated_files=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").bind(saved,project.id,auth.user.id).run();
     return json({projectId:project.id,plan});
+  }
+  const buildCreateMatch = path.match(/^\\/api\\/projects\\/([\\w-]+)\\/builds$/);
+  if (buildCreateMatch && method === "POST") {
+    const project = await env.DB.prepare("SELECT * FROM projects WHERE id=? AND user_id=?").bind(buildCreateMatch[1],auth.user.id).first();
+    if (!project) return json({error:"Project not found."},404);
+    if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY || !env.BUILD_CALLBACK_SECRET) return json({error:"Direct APK builds are not configured. Worker GitHub Actions secrets are required."},503);
+    const active = await env.DB.prepare("SELECT id FROM build_jobs WHERE project_id=? AND user_id=? AND status IN ('queued','running') LIMIT 1").bind(project.id,auth.user.id).first();
+    if (active) return json({error:"A build is already running for this project.",buildId:active.id},409);
+    let plan = null;
+    try { plan = project.generated_files ? JSON.parse(project.generated_files) : null; } catch {}
+    const specJson = JSON.stringify({name:project.name,kind:project.kind,description:project.description,plan:plan ? {summary:plan.summary,screens:plan.screens,features:plan.features} : null});
+    const buildId = id();
+    await env.DB.prepare("INSERT INTO build_jobs(id,project_id,user_id,status,project_snapshot,logs) VALUES(?,?,?,'queued',?,?)").bind(buildId,project.id,auth.user.id,specJson,"Build request queued.").run();
+    try {
+      await githubDispatch(env,buildId,specJson);
+      return json({buildId,status:"queued",message:"Build queued in GitHub Actions."},202);
+    } catch (error) {
+      await env.DB.prepare("UPDATE build_jobs SET status='failed',logs=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(error.message || error),buildId).run();
+      return json({error:String(error.message || "Could not start the Android build.")},503);
+    }
+  }
+  const buildStatusMatch = path.match(/^\\/api\\/builds\\/([\\w-]+)$/);
+  if (buildStatusMatch && method === "GET") {
+    const job = await env.DB.prepare("SELECT id,project_id,status,workflow_run_id,workflow_url,artifact_name,logs,created_at,updated_at FROM build_jobs WHERE id=? AND user_id=?").bind(buildStatusMatch[1],auth.user.id).first();
+    return job ? json({build:job}) : json({error:"Build not found."},404);
+  }
+  const buildListMatch = path.match(/^\\/api\\/projects\\/([\\w-]+)\\/builds$/);
+  if (buildListMatch && method === "GET") {
+    const project = await env.DB.prepare("SELECT id FROM projects WHERE id=? AND user_id=?").bind(buildListMatch[1],auth.user.id).first();
+    if (!project) return json({error:"Project not found."},404);
+    const result = await env.DB.prepare("SELECT id,status,workflow_run_id,workflow_url,artifact_name,logs,created_at,updated_at FROM build_jobs WHERE project_id=? AND user_id=? ORDER BY created_at DESC LIMIT 10").bind(project.id,auth.user.id).all();
+    return json({builds:result.results || []});
   }
   const androidMatch = path.match(/^\/api\/projects\/([\w-]+)\/android-project$/);
   if (androidMatch && method === "POST") {
