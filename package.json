@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 0.0.0.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "test:android-generator": "node scripts/test-android-generator.js",
+    "check": "npm run build && npm run test:android-generator"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
