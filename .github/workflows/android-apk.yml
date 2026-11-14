@@ -3,6 +3,23 @@ on:
   push:
     branches: [cloudflare-migration-prep]
   workflow_dispatch:
+    inputs:
+      project_name:
+        description: "Name of the starter app or game"
+        required: false
+        default: "AM Buildstudio Starter"
+        type: string
+      project_kind:
+        description: "Project type"
+        required: false
+        default: "App"
+        type: choice
+        options: [App, Game]
+      project_description:
+        description: "Short project description"
+        required: false
+        default: "Generated Android starter project"
+        type: string
 permissions:
   contents: read
 jobs:
@@ -13,7 +30,11 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Generate complete Android starter project
+      - name: Generate Android project
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PROJECT_KIND: ${{ inputs.project_kind }}
+          PROJECT_DESCRIPTION: ${{ inputs.project_description }}
         run: node scripts/create-android-template.js
       - uses: actions/setup-java@v5
         with:
