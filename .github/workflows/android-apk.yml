@@ -26,6 +26,11 @@ on:
         required: false
         default: ""
         type: string
+      build_callback_url:
+        description: "Internal callback URL (set by the website)"
+        required: false
+        default: ""
+        type: string
       project_spec_json:
         description: "Optional project-specific JSON: name, kind, description, and plan {summary, screens[], features[]}"
         required: false
@@ -52,7 +57,7 @@ jobs:
       - name: Notify website that build started
         if: inputs.build_job_id != ''
         env:
-          BUILD_CALLBACK_URL: ${{ secrets.BUILD_CALLBACK_URL }}
+          BUILD_CALLBACK_URL: ${{ inputs.build_callback_url }}
           BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
           BUILD_JOB_ID: ${{ inputs.build_job_id }}
           WORKFLOW_RUN_ID: ${{ github.run_id }}
