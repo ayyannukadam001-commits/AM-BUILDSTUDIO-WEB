@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createAndroidProject } from "../worker/src/android-generator.js";
 const project = createAndroidProject({name:"Demo Racing Game",kind:"Game",description:"A test project"});
 assert.equal(project.kind,"Game");
-assert.match(project.packageName,/^com\\.ambuildstudio\\.generated\\./);
+assert.ok(project.packageName.startsWith("com.ambuildstudio.generated."));
 assert.ok(project.files["settings.gradle.kts"]);
 assert.ok(project.files["app/build.gradle.kts"]);
 assert.ok(project.files["app/src/main/AndroidManifest.xml"]);

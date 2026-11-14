@@ -3,7 +3,7 @@ const safe = (value, fallback) => {
   return cleaned.slice(0, 48) || fallback;
 };
 export function createAndroidProject({ name, kind, description }) {
-  const appName = String(name || "My Android App").replace(/[<>\r\n]/g, "").slice(0, 60) || "My Android App";
+  const appName = String(name || "My Android App").replace(/[<>\r\n"$\\]/g, "").slice(0, 60) || "My Android App";
   const appId = "com.ambuildstudio.generated." + safe(name, "project").toLowerCase();
   const title = appName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   const kotlinTitle = appName;
