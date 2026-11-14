@@ -117,7 +117,7 @@ async function handle(request, env) {
   if (path === "/api/health" && method === "GET") {
     let db = false;
     try { await env.DB.prepare("SELECT 1").first(); db = true; } catch {}
-    return json({ ok:db, service:"am-buildstudio-api", database:db, ai:!!env.AI, authConfigured:!!(env.SESSION_SECRET && env.GOOGLE_CLIENT_ID && env.RESEND_API_KEY) }, db?200:503);
+    return json({ ok:db, service:"am-buildstudio-api", database:db, ai:!!env.AI, authConfigured:!!(env.SESSION_SECRET && env.GOOGLE_CLIENT_ID && env.RESEND_API_KEY), buildConfigured:!!(env.GITHUB_TOKEN && env.GITHUB_REPOSITORY && env.BUILD_CALLBACK_SECRET) }, db?200:503);
   }
   if (path === "/api/builds/callback" && method === "POST") return buildCallback(request,env);
   if (path === "/api/auth/email/request" && method === "POST") return sendOtp(request,env);
