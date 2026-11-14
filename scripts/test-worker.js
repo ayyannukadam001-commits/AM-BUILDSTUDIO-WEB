@@ -8,6 +8,7 @@ const env = {
   DB: {
     prepare(sql) {
       return {
+        first: async () => ({ ok: 1 }),
         bind(...args) {
           calls.push({ sql, args });
           return {
