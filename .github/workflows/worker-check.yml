@@ -20,4 +20,5 @@ jobs:
       - run: node --check worker/src/index.js
       - run: node --check worker/src/android-generator.js
       - run: node --check scripts/create-android-template.js
+      - run: node --check 'functions/api/[[path]].js'
       - run: node scripts/test-android-generator.js
