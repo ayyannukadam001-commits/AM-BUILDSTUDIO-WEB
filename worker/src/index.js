@@ -69,7 +69,7 @@ async function verifyOtp(request, env) {
   await env.DB.prepare("INSERT INTO users(id,email,display_name) VALUES(?,?,?) ON CONFLICT(email) DO NOTHING").bind(userId,email,email.split("@")[0]).run();
   const user = await env.DB.prepare("SELECT id,email,display_name FROM users WHERE email=?").bind(email).first();
   const session = await createSession(env,user.id);
-  return json({user},{headers:{ "set-cookie":cookieHeader(session.token,session.maxAge) }});
+  return json({user},200,{ "set-cookie":cookieHeader(session.token,session.maxAge) });
 }
 async function googleLogin(request, env) {
   if (!env.GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_ID.startsWith("REPLACE_") || !env.SESSION_SECRET) return json({error:"Google sign-in is not configured."},503);
@@ -84,7 +84,7 @@ async function googleLogin(request, env) {
   await env.DB.prepare("INSERT INTO users(id,email,display_name,google_sub) VALUES(?,?,?,?) ON CONFLICT(email) DO UPDATE SET google_sub=excluded.google_sub,display_name=excluded.display_name").bind(userId,email,String(claims.name || ""),String(claims.sub || "")).run();
   const user = await env.DB.prepare("SELECT id,email,display_name FROM users WHERE email=?").bind(email).first();
   const session = await createSession(env,user.id);
-  return json({user},{headers:{"set-cookie":cookieHeader(session.token,session.maxAge)}});
+  return json({user},200,{"set-cookie":cookieHeader(session.token,session.maxAge)});
 }
 async function handle(request, env) {
   const url = new URL(request.url), path = url.pathname, method = request.method;
@@ -103,7 +103,7 @@ async function handle(request, env) {
   if (path === "/api/auth/logout" && method === "POST") {
     const user = await currentUser(request,env), token = cookie(request,"am_session");
     if (user && token) await env.DB.prepare("DELETE FROM sessions WHERE id=?").bind(token.split(".")[0]).run();
-    return json({ok:true},{headers:{"set-cookie":cookieHeader("",0)}});
+    return json({ok:true},200,{"set-cookie":cookieHeader("",0)});
   }
   const auth = await requireUser(request,env);
   if (auth.response) return auth.response;
