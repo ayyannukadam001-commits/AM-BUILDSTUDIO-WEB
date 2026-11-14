@@ -1,0 +1,16 @@
+import assert from "node:assert/strict";
+import { createAndroidProject } from "../worker/src/android-generator.js";
+const project = createAndroidProject({name:"Demo Racing Game",kind:"Game",description:"A test project"});
+assert.equal(project.kind,"Game");
+assert.match(project.packageName,/^com\\.ambuildstudio\\.generated\\./);
+assert.ok(project.files["settings.gradle.kts"]);
+assert.ok(project.files["app/build.gradle.kts"]);
+assert.ok(project.files["app/src/main/AndroidManifest.xml"]);
+const kotlinPath=Object.keys(project.files).find(path=>path.endsWith("/MainActivity.kt"));
+assert.ok(kotlinPath,"MainActivity source must exist");
+assert.ok(project.files[kotlinPath].includes("Demo Racing Game"));
+assert.ok(project.files["app/src/main/AndroidManifest.xml"].includes("Demo Racing Game"));
+const hostile=createAndroidProject({name:"../Bad \"Name\" $x",kind:"App"});
+assert.ok(!hostile.packageName.includes("/"));
+assert.ok(!hostile.files[kotlinPath]?.includes("undefined"));
+console.log("Android generator tests passed.");

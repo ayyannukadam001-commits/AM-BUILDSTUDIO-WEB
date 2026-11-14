@@ -5,7 +5,7 @@ const safe = (value, fallback) => {
 export function createAndroidProject({ name, kind, description }) {
   const appName = String(name || "My Android App").replace(/[<>\r\n]/g, "").slice(0, 60) || "My Android App";
   const appId = "com.ambuildstudio.generated." + safe(name, "project").toLowerCase();
-  const title = appName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const title = appName.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");\n  const kotlinTitle = appName.replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/\\$/g, "\\\\$");
   const isGame = kind === "Game";
   const activity = `package ${appId}
 
@@ -40,7 +40,7 @@ fun GeneratedHome() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("${appName.replace(/"/g, "'")}", style = MaterialTheme.typography.headlineMedium)
+            Text("${kotlinTitle}", style = MaterialTheme.typography.headlineMedium)
             Text("${isGame ? "Your game project is ready to customize." : "Your app project is ready to customize."}", modifier = Modifier.padding(top = 12.dp))
             Button(onClick = {}) { Text("Get started") }
         }
