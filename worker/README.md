@@ -19,9 +19,8 @@ The signed-in project screen can submit an APK build to GitHub Actions, poll its
 Configure these additional GitHub Actions repository secrets before using the website build button:
 - `GITHUB_BUILD_TOKEN`: a fine-grained PAT for this repository with Actions: write and Contents: read. The deployment workflow installs it in the Worker as `GITHUB_TOKEN`.
 - `BUILD_CALLBACK_SECRET`: same random secret configured in the Worker.
-- `BUILD_CALLBACK_URL`: exact Pages origin plus `/api/builds/callback` (for example `https://YOUR-PAGES-DOMAIN/api/builds/callback`).
 
-The deployment workflow installs `GITHUB_BUILD_TOKEN` and `BUILD_CALLBACK_SECRET` into the Worker. Do not paste secrets into chat. Existing D1 databases created before the build metadata columns were added must apply `worker/migrations/0002_build_job_metadata.sql` once; check the table first and do not apply it if those four columns already exist. Fresh databases can use the full `worker/schema.sql`.
+The Worker derives the callback endpoint from its configured `APP_ORIGIN`, so no callback-URL secret is needed. The deployment workflow installs `GITHUB_BUILD_TOKEN` and `BUILD_CALLBACK_SECRET` into the Worker. The website passes the callback URL as a workflow input. Do not paste secrets into chat. Existing D1 databases created before the build metadata columns were added must apply `worker/migrations/0002_build_job_metadata.sql` once; check the table first and do not apply it if those four columns already exist. Fresh databases can use the full `worker/schema.sql`.
 
 ## API
 - `GET /api/health`
