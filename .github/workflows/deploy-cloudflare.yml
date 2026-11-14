@@ -12,6 +12,8 @@ jobs:
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      GITHUB_BUILD_TOKEN: ${{ secrets.GITHUB_BUILD_TOKEN }}
+      BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
       GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
       VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
     steps:
@@ -22,7 +24,7 @@ jobs:
       - name: Validate deployment configuration
         run: |
           set -eu
-          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SESSION_SECRET RESEND_API_KEY EMAIL_FROM GOOGLE_CLIENT_ID; do
+          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SESSION_SECRET RESEND_API_KEY EMAIL_FROM GOOGLE_CLIENT_ID GITHUB_BUILD_TOKEN BUILD_CALLBACK_SECRET; do
             eval "value=\$$key"
             if [ -z "$value" ]; then echo "::error::$key is missing in GitHub Actions secrets/variables."; exit 1; fi
           done
@@ -44,6 +46,8 @@ jobs:
           printf %s "$SESSION_SECRET" | npx --yes wrangler@4 secret put SESSION_SECRET --config wrangler.toml
           printf %s "$RESEND_API_KEY" | npx --yes wrangler@4 secret put RESEND_API_KEY --config wrangler.toml
           printf %s "$EMAIL_FROM" | npx --yes wrangler@4 secret put EMAIL_FROM --config wrangler.toml
+          printf %s "$GITHUB_BUILD_TOKEN" | npx --yes wrangler@4 secret put GITHUB_TOKEN --config wrangler.toml
+          printf %s "$BUILD_CALLBACK_SECRET" | npx --yes wrangler@4 secret put BUILD_CALLBACK_SECRET --config wrangler.toml
       - name: Deploy API Worker
         working-directory: worker
         run: npx --yes wrangler@4 deploy --config wrangler.toml
