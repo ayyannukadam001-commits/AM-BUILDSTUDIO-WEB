@@ -3,7 +3,7 @@ import path from "node:path";
 import { createAndroidProject } from "../worker/src/android-generator.js";
 
 function readSpec() {
-  const raw = process.env.PROJECT_SPEC_JSON;
+  const raw = process.env.PROJECT_SPEC_JSON || (process.env.GITHUB_EVENT_NAME === "pull_request" ? JSON.stringify({ name: "CI Validation App", kind: "App", description: "CI project-specific APK validation", plan: { summary: "Generated CI project preview", screens: ["Home", "Settings"], features: ["Search", "Profile"] } }) : "");
   if (!raw) return null;
   if (raw.length > 60000) throw new Error("PROJECT_SPEC_JSON exceeds the 60 KB workflow input limit.");
   let spec;
