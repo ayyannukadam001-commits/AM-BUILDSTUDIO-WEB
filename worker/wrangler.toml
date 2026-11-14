@@ -9,13 +9,12 @@ binding = "AI"
 binding = "DB"
 database_name = "am-buildstudio"
 database_id = "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID"
-databaseற = "schema.sql"
 
 [vars]
 APP_ORIGIN = "https://REPLACE_WITH_PAGES_DOMAIN"
 GOOGLE_CLIENT_ID = "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID"
 
-# Configure these as encrypted Worker secrets, never commit values:
+# Configure as encrypted Worker secrets; never commit values:
 # SESSION_SECRET
 # RESEND_API_KEY
 # EMAIL_FROM
