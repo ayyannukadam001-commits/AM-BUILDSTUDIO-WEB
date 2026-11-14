@@ -16,6 +16,8 @@ APP_ORIGIN = "https://REPLACE_WITH_PAGES_DOMAIN"
 GOOGLE_CLIENT_ID = "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID"
 GITHUB_REPOSITORY = "ayyannukadam001-commits/AM-BUILDSTUDIO-WEB"
 GITHUB_BUILD_REF = "am-buildstudio-upgrade-audit"
+GITHUB_REPOSITORY = "ayyannukadam001-commits/AM-BUILDSTUDIO-WEB"
+GITHUB_BUILD_REF = "am-buildstudio-upgrade-audit"
 
 # Configure as encrypted Worker secrets; never commit values:
 # SESSION_SECRET
