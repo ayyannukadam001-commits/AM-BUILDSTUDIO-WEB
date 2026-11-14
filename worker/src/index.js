@@ -204,7 +204,7 @@ async function handle(request, env) {
     const job = await env.DB.prepare("SELECT id,project_id,status,workflow_run_id,workflow_url,artifact_name,logs,created_at,updated_at FROM build_jobs WHERE id=? AND user_id=?").bind(buildStatusMatch[1],auth.user.id).first();
     return job ? json({build:job}) : json({error:"Build not found."},404);
   }
-  const buildDownloadMatch = path.match(/^\\/api\\/builds\\/([\\w-]+)\\/download$/);
+  const buildDownloadMatch = path.match(/^\/api\/builds\/([\w-]+)\/download$/);
   if (buildDownloadMatch && method === "GET") {
     const job = await env.DB.prepare("SELECT workflow_run_id,artifact_name,status FROM build_jobs WHERE id=? AND user_id=?").bind(buildDownloadMatch[1],auth.user.id).first();
     if (!job) return json({error:"Build not found."},404);
