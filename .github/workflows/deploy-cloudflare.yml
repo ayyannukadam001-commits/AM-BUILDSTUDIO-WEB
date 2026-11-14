@@ -9,22 +9,41 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Validate deployment configuration
+        run: |
+          set -eu
+          for key in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SESSION_SECRET RESEND_API_KEY EMAIL_FROM GOOGLE_CLIENT_ID; do
+            eval "value=\$$key"
+            if [ -z "$value" ]; then echo "::error::$key is missing in GitHub Actions secrets/variables."; exit 1; fi
+          done
+          if grep -q 'REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID\|REPLACE_WITH_PAGES_DOMAIN\|REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID' worker/wrangler.toml; then
+            echo "::error::Replace D1 database ID, Pages origin and Google client ID in worker/wrangler.toml first."
+            exit 1
+          fi
       - run: npm install
       - name: Build Pages frontend
-        env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
         run: npm run build
-      - name: Deploy Pages frontend
-        run: npx --yes wrangler@4 pages deploy dist --project-name am-buildstudio --branch main
+      - name: Deploy Pages preview
+        run: npx --yes wrangler@4 pages deploy dist --project-name am-buildstudio --branch cloudflare-migration-prep
       - name: Apply D1 schema
         working-directory: worker
         run: npx --yes wrangler@4 d1 execute am-buildstudio --remote --file=schema.sql --config wrangler.toml
+      - name: Configure Worker secrets
+        working-directory: worker
+        run: |
+          printf %s "$SESSION_SECRET" | npx --yes wrangler@4 secret put SESSION_SECRET --config wrangler.toml
+          printf %s "$RESEND_API_KEY" | npx --yes wrangler@4 secret put RESEND_API_KEY --config wrangler.toml
+          printf %s "$EMAIL_FROM" | npx --yes wrangler@4 secret put EMAIL_FROM --config wrangler.toml
       - name: Deploy API Worker
         working-directory: worker
         run: npx --yes wrangler@4 deploy --config wrangler.toml
