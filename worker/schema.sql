@@ -38,6 +38,10 @@ CREATE TABLE IF NOT EXISTS build_jobs (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'queued',
   artifact_url TEXT,
+  project_snapshot TEXT,
+  workflow_run_id TEXT,
+  workflow_url TEXT,
+  artifact_name TEXT,
   logs TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
