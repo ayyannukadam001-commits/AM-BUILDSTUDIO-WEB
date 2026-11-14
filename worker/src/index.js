@@ -196,7 +196,7 @@ async function handle(request, env) {
       return json({buildId,status:"queued",message:"Build queued in GitHub Actions."},202);
     } catch (error) {
       await env.DB.prepare("UPDATE build_jobs SET status='failed',logs=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(String(error.message || error),buildId).run();
-      return json({error:String(error.message || "Could not start the Android build.")},503);
+      return json({error:String(error.message || "Could not start the Android build."),buildId,status:"failed"},503);
     }
   }
   const buildStatusMatch = path.match(/^\/api\/builds\/([\w-]+)$/);
