@@ -179,7 +179,7 @@ async function handle(request, env) {
     await env.DB.prepare("UPDATE projects SET status='generated',generated_files=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").bind(saved,project.id,auth.user.id).run();
     return json({projectId:project.id,plan});
   }
-  const buildCreateMatch = path.match(/^\\/api\\/projects\\/([\\w-]+)\\/builds$/);
+  const buildCreateMatch = path.match(/^\/api\/projects\/([\w-]+)\/builds$/);
   if (buildCreateMatch && method === "POST") {
     const project = await env.DB.prepare("SELECT * FROM projects WHERE id=? AND user_id=?").bind(buildCreateMatch[1],auth.user.id).first();
     if (!project) return json({error:"Project not found."},404);
@@ -199,12 +199,12 @@ async function handle(request, env) {
       return json({error:String(error.message || "Could not start the Android build.")},503);
     }
   }
-  const buildStatusMatch = path.match(/^\\/api\\/builds\\/([\\w-]+)$/);
+  const buildStatusMatch = path.match(/^\/api\/builds\/([\w-]+)$/);
   if (buildStatusMatch && method === "GET") {
     const job = await env.DB.prepare("SELECT id,project_id,status,workflow_run_id,workflow_url,artifact_name,logs,created_at,updated_at FROM build_jobs WHERE id=? AND user_id=?").bind(buildStatusMatch[1],auth.user.id).first();
     return job ? json({build:job}) : json({error:"Build not found."},404);
   }
-  const buildListMatch = path.match(/^\\/api\\/projects\\/([\\w-]+)\\/builds$/);
+  const buildListMatch = path.match(/^\/api\/projects\/([\w-]+)\/builds$/);
   if (buildListMatch && method === "GET") {
     const project = await env.DB.prepare("SELECT id FROM projects WHERE id=? AND user_id=?").bind(buildListMatch[1],auth.user.id).first();
     if (!project) return json({error:"Project not found."},404);
