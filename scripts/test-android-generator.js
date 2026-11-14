@@ -8,7 +8,7 @@ assert.ok(project.files["app/build.gradle.kts"]);
 assert.ok(project.files["app/src/main/AndroidManifest.xml"]);
 const kotlinPath=Object.keys(project.files).find(path=>path.endsWith("/MainActivity.kt"));
 assert.ok(kotlinPath,"MainActivity source must exist");
-assert.ok(project.files[kotlinPath].includes("Demo Racing Game"));
+assert.ok(project.files[kotlinPath].includes("Demo Racing Game"));\nconst planned=createAndroidProject({name:"Planned App",kind:"App",description:"Test",plan:{summary:"AI generated summary",screens:["Home","Profile"],features:["Sign in","Search"]}});\nconst plannedKotlin=Object.values(planned.files).find(value=>value.includes("fun GeneratedHome"));\nassert.ok(plannedKotlin.includes("Current screen: "));\nassert.ok(plannedKotlin.includes("Profile"));\nassert.ok(plannedKotlin.includes("Sign in"));
 assert.ok(project.files["app/src/main/AndroidManifest.xml"].includes("Demo Racing Game"));
 const hostile=createAndroidProject({name:"../Bad \"Name\" $x",kind:"App"});
 assert.ok(!hostile.packageName.includes("/"));
