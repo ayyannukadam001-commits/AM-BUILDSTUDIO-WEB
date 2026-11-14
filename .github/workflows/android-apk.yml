@@ -1,40 +1,57 @@
-name: Build AM BUILDSTUDIO Android APK
+name: Build AM BUILDSTUDIO project APK
+
 on:
   push:
-    branches: [cloudflare-migration-prep]
+    branches: [cloudflare-migration-prep, am-buildstudio-upgrade-audit]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       project_name:
-        description: "Name of the starter app or game"
+        description: "Fallback project name (used when project_spec_json is empty)"
         required: false
         default: "AM Buildstudio Starter"
         type: string
       project_kind:
-        description: "Project type"
+        description: "Fallback project type"
         required: false
         default: "App"
         type: choice
         options: [App, Game]
       project_description:
-        description: "Short project description"
+        description: "Fallback project description"
         required: false
         default: "Generated Android starter project"
         type: string
+      project_spec_json:
+        description: "Optional project-specific JSON: name, kind, description, and plan {summary, screens[], features[]}"
+        required: false
+        default: ""
+        type: string
+
 permissions:
   contents: read
+
+concurrency:
+  group: android-apk-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   android:
+    name: Generate and compile Android project
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Generate Android project
+      - name: Generate project-specific Android source
         env:
           PROJECT_NAME: ${{ inputs.project_name }}
           PROJECT_KIND: ${{ inputs.project_kind }}
           PROJECT_DESCRIPTION: ${{ inputs.project_description }}
+          PROJECT_SPEC_JSON: ${{ inputs.project_spec_json }}
         run: node scripts/create-android-template.js
       - uses: actions/setup-java@v5
         with:
@@ -49,10 +66,18 @@ jobs:
       - name: Compile debug APK
         working-directory: android-output
         run: gradle --no-daemon :app:assembleDebug
-      - name: Verify APK exists
-        run: test -s android-output/app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify APK and generated package metadata
+        shell: bash
+        run: |
+          APK="android-output/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          test -s android-output/app/src/main/AndroidManifest.xml
+          test -s android-output/app/build.gradle.kts
+          echo "APK_SIZE_BYTES=$(stat -c%s "$APK")" >> "$GITHUB_ENV"
+          sha256sum "$APK"
       - uses: actions/upload-artifact@v4
         with:
-          name: am-buildstudio-generated-starter-debug-apk
+          name: am-buildstudio-project-debug-apk-${{ github.run_number }}
           path: android-output/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+          retention-days: 14
