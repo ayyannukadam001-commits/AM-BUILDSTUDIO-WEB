@@ -1,6 +1,6 @@
 # AM BUILDSTUDIO
 
-Mobile-responsive React + Vite starter for an app and game creation workspace.
+Mobile-responsive React + Vite workspace for creating app and game starter projects.
 
 ## Run locally
 `npm install`
@@ -9,14 +9,25 @@ Mobile-responsive React + Vite starter for an app and game creation workspace.
 ## Build
 `npm run build`
 
-## Current preview scope
-- Responsive dashboard and navigation
-- App/Game project creation with browser-local persistence
-- Starter templates and project brief steps
-- Asset approval UI (placeholder previews only)
-- Honest integration status for AI, authentication, cloud storage and Android builds
+## Implemented in the `cloudflare-migration-prep` branch
+- Responsive dashboard, project creation and project brief UI.
+- Cloudflare Worker API foundation with D1 schema for users, sessions, email OTPs, projects and build jobs.
+- Email OTP sign-in and Google Identity ID-token verification endpoints.
+- Workers AI project-plan endpoint; saved plans can supply screen and feature content to the Android starter generator.
+- Authenticated cloud project CRUD endpoints.
+- Downloadable multi-file Android Compose starter ZIP from the signed-in project view.
+- GitHub Actions workflow that generates and compiles a debug APK starter; manual workflow dispatch accepts project name, App/Game type and description.
+- CI checks for frontend build, Worker syntax and Android generator tests.
+- Cloudflare Pages same-origin API proxy and a manual preview-deployment workflow.
 
-## Not yet implemented
-Gemini generation, real image/3D asset generation, Google/email authentication, cloud sync, project source-code generation, Android SDK/Gradle APK compilation, and APK signing. The current project brief is not a generated app or game. These require backend services, secure provider credentials, and a verified Android build pipeline.
+## Still requires external configuration or additional implementation
+- Cloudflare Pages project, D1 database ID, Worker deployment, Pages `API_ORIGIN`, and exact Pages/Worker origins.
+- GitHub Actions secrets for Cloudflare deployment, email delivery and session signing; Google OAuth client configuration.
+- Live end-to-end verification of sign-in, D1 persistence and Workers AI after deployment.
+- The generated Android project is a plan-driven starter scaffold, not a fully implemented custom app/game. The current APK workflow is a starter build smoke test; it does not compile each user's saved project automatically.
+- Real image/3D asset generation and asset import.
+- Release APK signing, device installation tests, and production security review.
 
-Version: 0.1.0
+Do not commit provider credentials, Cloudflare tokens, signing keys or user secrets. Keep the existing production branch unchanged until the preview deployment and all required tests pass.
+
+Version: 0.2.0 (migration-preparation branch)
