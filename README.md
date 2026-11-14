@@ -55,10 +55,12 @@ The project page now includes a **Build Android APK** action. It creates an owne
 Before enabling this feature on a deployed Worker:
 
 1. Apply the D1 migration once:
-   `npx wrangler d1 execute am-buildstudio --remote --file=worker/migrations/0002_build_job_dispatch.sql`
+   `npx wrangler --config worker/wrangler.toml d1 execute am-buildstudio --remote --file=worker/migrations/0002_build_job_dispatch.sql`
 2. Set Worker secrets (never commit their values):
    - `GITHUB_TOKEN`: fine-grained GitHub token with Actions: read/write and repository metadata access for this repository.
    - `BUILD_CALLBACK_SECRET`: long random secret shared with the repository Actions secret of the same name.
+
+From the repository root, set the Worker secrets with `npx wrangler --config worker/wrangler.toml secret put GITHUB_TOKEN` and `npx wrangler --config worker/wrangler.toml secret put BUILD_CALLBACK_SECRET`. In GitHub repository Settings → Secrets and variables → Actions, add `BUILD_CALLBACK_URL` and `BUILD_CALLBACK_SECRET`.
 3. Set repository Actions secrets:
    - `BUILD_CALLBACK_URL`: the deployed Worker callback URL ending in `/api/builds/callback`.
    - `BUILD_CALLBACK_SECRET`: same value as the Worker secret.
