@@ -151,7 +151,7 @@ async function handle(request, env) {
 export default {
   async fetch(request,env) {
     if (!originAllowed(request,env)) return json({error:"Origin not allowed"},403);
-    if (request.method === "OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":env.APP_ORIGIN || "null","Access-Control-Allow-Methods":"GET,POST,DELETE,OPTIONS","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Credentials":"true","Vary":"Origin"});
+    if (request.method === "OPTIONS") return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":env.APP_ORIGIN || "null","Access-Control-Allow-Methods":"GET,POST,DELETE,OPTIONS","Access-Control-Allow-Headers":"Content-Type","Access-Control-Allow-Credentials":"true","Vary":"Origin"}});
     try {
       const response = await handle(request,env);
       const headers = new Headers(response.headers);
