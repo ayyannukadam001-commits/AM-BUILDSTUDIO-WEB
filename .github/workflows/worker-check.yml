@@ -15,8 +15,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-          cache: npm
       - run: npm install
       - run: npm run build
       - run: node --check worker/src/index.js
       - run: node --check worker/src/android-generator.js
+      - run: node --check scripts/create-android-template.js
