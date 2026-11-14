@@ -94,7 +94,7 @@ async function githubDispatch(env, jobId, specJson) {
   const response = await fetch("https://api.github.com/repos/" + env.GITHUB_REPOSITORY + "/actions/workflows/android-apk.yml/dispatches", {
     method: "POST",
     headers: { Authorization: "Bearer " + env.GITHUB_TOKEN, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "Content-Type": "application/json" },
-    body: JSON.stringify({ ref, inputs: { build_job_id: jobId, build_callback_url: String(env.APP_ORIGIN || "").replace(/\\/$/, "") + "/api/builds/callback", project_spec_json: specJson } })
+    body: JSON.stringify({ ref, inputs: { build_job_id: jobId, build_callback_url: String(env.APP_ORIGIN || "").replace(/\/$/, "") + "/api/builds/callback", project_spec_json: specJson } })
   });
   if (!response.ok) throw new Error("GitHub Actions dispatch failed (" + response.status + "). Check Worker token permissions and repository Actions settings.");
 }
