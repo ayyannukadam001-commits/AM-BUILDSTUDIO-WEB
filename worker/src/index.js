@@ -146,7 +146,9 @@ async function handle(request, env) {
   if (androidMatch && method === "POST") {
     const project = await env.DB.prepare("SELECT * FROM projects WHERE id=? AND user_id=?").bind(androidMatch[1],auth.user.id).first();
     if (!project) return json({error:"Project not found."},404);
-    let generatedPlan = null;\n    try { generatedPlan = project.generated_files ? JSON.parse(project.generated_files) : null; } catch {}\n    return json({projectId:project.id, ...createAndroidProject({...project, plan:generatedPlan})});
+    let generatedPlan = null;
+    try { generatedPlan = project.generated_files ? JSON.parse(project.generated_files) : null; } catch {}
+    return json({projectId:project.id, ...createAndroidProject({...project, plan:generatedPlan})});
   }
   return json({error:"Not found"},404);
 }
