@@ -204,6 +204,24 @@ async function handle(request, env) {
     const job = await env.DB.prepare("SELECT id,project_id,status,workflow_run_id,workflow_url,artifact_name,logs,created_at,updated_at FROM build_jobs WHERE id=? AND user_id=?").bind(buildStatusMatch[1],auth.user.id).first();
     return job ? json({build:job}) : json({error:"Build not found."},404);
   }
+  const buildDownloadMatch = path.match(/^\\/api\\/builds\\/([\\w-]+)\\/download$/);
+  if (buildDownloadMatch && method === "GET") {
+    const job = await env.DB.prepare("SELECT workflow_run_id,artifact_name,status FROM build_jobs WHERE id=? AND user_id=?").bind(buildDownloadMatch[1],auth.user.id).first();
+    if (!job) return json({error:"Build not found."},404);
+    if (job.status !== "succeeded" || !job.workflow_run_id || !job.artifact_name) return json({error:"APK artifact is not ready yet."},409);
+    if (!env.GITHUB_TOKEN || !env.GITHUB_REPOSITORY) return json({error:"Secure artifact download is not configured."},503);
+    const api = "https://api.github.com/repos/" + env.GITHUB_REPOSITORY + "/actions/runs/" + encodeURIComponent(job.workflow_run_id) + "/artifacts?per_page=100";
+    const list = await fetch(api,{headers:{Authorization:"Bearer "+env.GITHUB_TOKEN,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}});
+    if (!list.ok) return json({error:"Could not retrieve build artifact metadata from GitHub."},502);
+    const data = await list.json();
+    const artifact = (data.artifacts || []).find(item => item.name === job.artifact_name && !item.expired);
+    if (!artifact) return json({error:"APK artifact has expired or is unavailable."},404);
+    const download = await fetch(artifact.archive_download_url,{headers:{Authorization:"Bearer "+env.GITHUB_TOKEN,Accept:"application/vnd.github+json"},redirect:"manual"});
+    if (![301,302,303,307,308].includes(download.status)) return json({error:"GitHub did not provide a secure artifact download link."},502);
+    const location = download.headers.get("Location");
+    if (!location) return json({error:"Artifact download URL is missing."},502);
+    return Response.redirect(location,302);
+  }
   const buildListMatch = path.match(/^\/api\/projects\/([\w-]+)\/builds$/);
   if (buildListMatch && method === "GET") {
     const project = await env.DB.prepare("SELECT id FROM projects WHERE id=? AND user_id=?").bind(buildListMatch[1],auth.user.id).first();
