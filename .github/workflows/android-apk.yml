@@ -1,0 +1,150 @@
+name: Build AM BUILDSTUDIO project APK
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      project_name:
+        description: "Fallback project name (used when project_spec_json is empty)"
+        required: false
+        default: "AM Buildstudio Starter"
+        type: string
+      project_kind:
+        description: "Fallback project type"
+        required: false
+        default: "App"
+        type: choice
+        options: [App, Game]
+      project_description:
+        description: "Fallback project description"
+        required: false
+        default: "Generated Android starter project"
+        type: string
+      build_job_id:
+        description: "Internal build job ID (set by the website)"
+        required: false
+        default: ""
+        type: string
+      build_callback_url:
+        description: "Internal callback URL (set by the website)"
+        required: false
+        default: ""
+        type: string
+      project_spec_json:
+        description: "Optional project-specific JSON: name, kind, description, and plan {summary, screens[], features[]}"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-apk-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    name: Generate and compile Android project
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Notify website that build started
+        if: inputs.build_job_id != ''
+        env:
+          BUILD_CALLBACK_URL: ${{ inputs.build_callback_url }}
+          BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
+          BUILD_JOB_ID: ${{ inputs.build_job_id }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          test -n "$BUILD_CALLBACK_URL" && test -n "$BUILD_CALLBACK_SECRET"
+          curl --fail-with-body --silent --show-error "$BUILD_CALLBACK_URL" -X POST \
+            -H "Content-Type: application/json" -H "X-Build-Callback-Secret: $BUILD_CALLBACK_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({job_id:process.env.BUILD_JOB_ID,status:"running",workflow_run_id:process.env.WORKFLOW_RUN_ID,workflow_url:process.env.WORKFLOW_URL,message:"Android build started."})))"
+      - name: Generate project-specific Android source
+        env:
+          PROJECT_NAME: ${{ inputs.project_name }}
+          PROJECT_KIND: ${{ inputs.project_kind }}
+          PROJECT_DESCRIPTION: ${{ inputs.project_description }}
+          PROJECT_SPEC_JSON: ${{ inputs.project_spec_json }}
+        run: node scripts/create-android-template.js
+      - name: Report source generation progress
+        if: inputs.build_job_id != ''
+        env:
+          BUILD_CALLBACK_URL: ${{ secrets.BUILD_CALLBACK_URL }}
+          BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
+          BUILD_JOB_ID: ${{ inputs.build_job_id }}
+        run: |
+          curl --fail-with-body --silent --show-error "$BUILD_CALLBACK_URL" -X POST \
+            -H "Content-Type: application/json" -H "X-Build-Callback-Secret: $BUILD_CALLBACK_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({job_id:process.env.BUILD_JOB_ID,status:"running",message:"Android project source files generated."})))"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Compile debug APK
+        working-directory: android-output
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Report APK compilation progress
+        if: success() && inputs.build_job_id != ''
+        env:
+          BUILD_CALLBACK_URL: ${{ secrets.BUILD_CALLBACK_URL }}
+          BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
+          BUILD_JOB_ID: ${{ inputs.build_job_id }}
+        run: |
+          curl --fail-with-body --silent --show-error "$BUILD_CALLBACK_URL" -X POST \
+            -H "Content-Type: application/json" -H "X-Build-Callback-Secret: $BUILD_CALLBACK_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({job_id:process.env.BUILD_JOB_ID,status:"running",message:"Android debug APK compiled; verification is running."})))"
+      - name: Verify APK and generated package metadata
+        shell: bash
+        run: |
+          APK="android-output/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$APK"
+          test -s android-output/app/src/main/AndroidManifest.xml
+          test -s android-output/app/build.gradle.kts
+          echo "APK_SIZE_BYTES=$(stat -c%s "$APK")" >> "$GITHUB_ENV"
+          sha256sum "$APK"
+      - uses: actions/upload-artifact@v4
+        id: apk
+        with:
+          name: am-buildstudio-project-debug-apk-${{ github.run_number }}
+          path: android-output/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Notify website that APK is ready
+        if: success() && inputs.build_job_id != ''
+        env:
+          BUILD_CALLBACK_URL: ${{ secrets.BUILD_CALLBACK_URL }}
+          BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
+          BUILD_JOB_ID: ${{ inputs.build_job_id }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ARTIFACT_NAME: am-buildstudio-project-debug-apk-${{ github.run_number }}
+        run: |
+          curl --fail-with-body --silent --show-error "$BUILD_CALLBACK_URL" -X POST \
+            -H "Content-Type: application/json" -H "X-Build-Callback-Secret: $BUILD_CALLBACK_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({job_id:process.env.BUILD_JOB_ID,status:"succeeded",workflow_run_id:process.env.WORKFLOW_RUN_ID,workflow_url:process.env.WORKFLOW_URL,artifact_name:process.env.ARTIFACT_NAME,message:"APK compiled, verified and uploaded as a GitHub Actions artifact."})))"
+      - name: Notify website that build failed
+        if: failure() && inputs.build_job_id != ''
+        env:
+          BUILD_CALLBACK_URL: ${{ secrets.BUILD_CALLBACK_URL }}
+          BUILD_CALLBACK_SECRET: ${{ secrets.BUILD_CALLBACK_SECRET }}
+          BUILD_JOB_ID: ${{ inputs.build_job_id }}
+          WORKFLOW_RUN_ID: ${{ github.run_id }}
+          WORKFLOW_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl --fail-with-body --silent --show-error "$BUILD_CALLBACK_URL" -X POST \
+            -H "Content-Type: application/json" -H "X-Build-Callback-Secret: $BUILD_CALLBACK_SECRET" \
+            -d "$(node -e 'console.log(JSON.stringify({job_id:process.env.BUILD_JOB_ID,status:"failed",workflow_run_id:process.env.WORKFLOW_RUN_ID,workflow_url:process.env.WORKFLOW_URL,message:"Android build failed. Open the workflow run for the exact error log."})))"

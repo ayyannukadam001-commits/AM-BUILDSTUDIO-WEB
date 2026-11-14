@@ -1,0 +1,27 @@
+name = "am-buildstudio-api"
+main = "src/index.js"
+compatibility_date = "2026-11-14"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "am-buildstudio"
+database_id = "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+APP_ORIGIN = "https://REPLACE_WITH_PAGES_DOMAIN"
+GOOGLE_CLIENT_ID = "REPLACE_WITH_GOOGLE_OAUTH_CLIENT_ID"
+GITHUB_REPOSITORY = "ayyannukadam001-commits/AM-BUILDSTUDIO-WEB"
+GITHUB_BUILD_REF = "am-buildstudio-upgrade-audit"
+GITHUB_REPOSITORY = "ayyannukadam001-commits/AM-BUILDSTUDIO-WEB"
+GITHUB_BUILD_REF = "am-buildstudio-upgrade-audit"
+
+# Configure as encrypted Worker secrets; never commit values:
+# SESSION_SECRET
+# RESEND_API_KEY
+# EMAIL_FROM
+# GITHUB_TOKEN (fine-grained token with Actions write permission)
+# BUILD_CALLBACK_SECRET
