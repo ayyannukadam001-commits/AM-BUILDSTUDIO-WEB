@@ -82,7 +82,7 @@ dependencies {
 `,
     "app/src/main/AndroidManifest.xml": `<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="${title}" android:allowBackup="false"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>`,
     "app/src/main/java/" + appId.replace(/\./g, "/") + "/MainActivity.kt": activity,
-    "README.md": `# ${appName}\n\nGenerated Android ${kind || "App"} starter project.\n\nDescription: ${String(description || "").replace(/[\r\n]/g, " ").slice(0, 500)}\n\nOpen this folder in Android Studio and run the app. Build a debug APK with `gradle :app:assembleDebug`.\n\nThis is a compilable starter scaffold, not a complete implementation of every described feature. Review and test before release.\n`
+    "README.md": `# ${appName}\n\nGenerated Android ${kind || "App"} starter project.\n\nDescription: ${String(description || "").replace(/[\r\n]/g, " ").slice(0, 500)}\n\nOpen this folder in Android Studio and run the app. Build a debug APK with gradle :app:assembleDebug.\n\nThis is a compilable starter scaffold, not a complete implementation of every described feature. Review and test before release.\n`
   };
   return { name: appName, packageName: appId, kind: isGame ? "Game" : "App", files };
 }
