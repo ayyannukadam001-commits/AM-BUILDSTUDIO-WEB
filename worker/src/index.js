@@ -48,7 +48,9 @@ async function sendOtp(request, env) {
   const body = await request.json();
   const email = String(body.email || "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Enter a valid email address." }, 400);
-  const prior = await env.DB.prepare("SELECT created_at FROM email_otps WHERE email=?").bind(email).first();\n  if (prior && Math.floor(Date.now()/1000) - prior.created_at < 60) return json({error:"Please wait 60 seconds before requesting another code."},429);\n  const code = randomCode(), expires = Math.floor(Date.now()/1000) + 600;
+  const prior = await env.DB.prepare("SELECT created_at FROM email_otps WHERE email=?").bind(email).first();
+  if (prior && Math.floor(Date.now()/1000) - prior.created_at < 60) return json({error:"Please wait 60 seconds before requesting another code."},429);
+  const code = randomCode(), expires = Math.floor(Date.now()/1000) + 600;
   await env.DB.prepare("INSERT INTO email_otps(email,code_hash,expires_at,attempts,created_at) VALUES(?,?,?,0,?) ON CONFLICT(email) DO UPDATE SET code_hash=excluded.code_hash,expires_at=excluded.expires_at,attempts=0,created_at=excluded.created_at").bind(email, await digest(email + ":" + code + ":" + env.SESSION_SECRET), expires, Math.floor(Date.now()/1000)).run();
   const mail = await fetch("https://api.resend.com/emails", { method:"POST", headers:{Authorization:"Bearer " + env.RESEND_API_KEY,"Content-Type":"application/json"}, body:JSON.stringify({from:env.EMAIL_FROM,to:[email],subject:"Your AM BUILDSTUDIO sign-in code",text:"Your verification code is " + code + ". It expires in 10 minutes. If you did not request this, ignore this email."}) });
   if (!mail.ok) return json({ error: "Could not send verification email. Check the email provider configuration." }, 502);
