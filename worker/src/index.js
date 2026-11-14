@@ -136,8 +136,20 @@ async function handle(request, env) {
     ],max_tokens:900});
     const raw = aiResult.response || "";
     let plan;
-    try { plan = JSON.parse(raw); } catch { return json({error:"AI returned an invalid project plan. Try again."},502); }
+    try {
+      const first = raw.indexOf("{"), last = raw.lastIndexOf("}");
+      if (first < 0 || last <= first) throw new Error("No JSON object");
+      plan = JSON.parse(raw.slice(first, last + 1));
+    } catch { return json({error:"AI returned an invalid project plan. Try again."},502); }
     if (!plan || !Array.isArray(plan.features) || !Array.isArray(plan.screens)) return json({error:"AI response did not match the required schema."},502);
+    plan = {
+      appName: String(plan.appName || project.name).slice(0,80),
+      kind: project.kind,
+      summary: String(plan.summary || "Generated project plan").slice(0,300),
+      features: plan.features.filter(x => typeof x === "string").slice(0,8).map(x => x.slice(0,100)),
+      screens: plan.screens.filter(x => typeof x === "string").slice(0,8).map(x => x.slice(0,50))
+    };
+    if (!plan.features.length || !plan.screens.length) return json({error:"AI plan needs at least one feature and one screen."},502);
     const saved = JSON.stringify(plan);
     await env.DB.prepare("UPDATE projects SET status='generated',generated_files=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?").bind(saved,project.id,auth.user.id).run();
     return json({projectId:project.id,plan});
